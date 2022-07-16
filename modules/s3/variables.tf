@@ -15,9 +15,6 @@ variable "kms_key_arn" {
 }
 
 
-
-
-
 ##### Optional #####
 
 variable "metrics_enabled" {

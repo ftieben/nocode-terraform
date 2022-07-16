@@ -25,19 +25,66 @@ resource "aws_s3_bucket_policy" "mybucket_policy" {
 
 data "aws_iam_policy_document" "mybucket_policy_document" {
   statement {
+    effect = "Deny"
+    sid    = "AllowSSLRequestsOnly"
+    resources = [
+      aws_s3_bucket.storage.arn,
+      "${aws_s3_bucket.storage.arn}/*"
+    ]
+    actions = [
+      "s3:*",
+    ]
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
     principals {
       type        = "AWS"
-      identifiers = ["123456789012"]
+      identifiers = ["*"]
     }
-
-    actions = [
-      "s3:GetObject",
-      "s3:ListBucket",
-    ]
-
-    resources = [
-      aws_s3_bucket.example.arn,
-      "${aws_s3_bucket.example.arn}/*",
-    ]
   }
+
+  statement {
+    actions = [
+      "s3:PutObject",
+    ]
+    condition {
+      test     = "StringNotEquals"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = ["aws:kms"]
+    }
+    effect = "Deny"
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+    resources = [
+      aws_s3_bucket.storage.arn,
+      "${aws_s3_bucket.storage.arn}/*"
+    ]
+    sid = "DenyIncorrectEncryptionHeader"
+  }
+
+  statement {
+    actions = [
+      "s3:PutObject",
+    ]
+    condition {
+      test     = "Null"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = [true]
+    }
+    effect = "Deny"
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+    resources = [
+      aws_s3_bucket.storage.arn,
+      "${aws_s3_bucket.storage.arn}/*"
+    ]
+    sid = "DenyUnEncryptedObjectUploads"
+  }
+
 }
